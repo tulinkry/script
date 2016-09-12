@@ -8,7 +8,8 @@ class FileJsScript extends \Tulinkry\Script\Entity\Script
 {
 
     public function getHtml () {
-        return Html::el( "script" ) -> type( "text/javascript" ) -> src( $this -> source );
+        $source = $this -> source . '?t=' . time();
+        return Html::el( "script" ) -> type( "text/javascript" ) -> src( $source );
     }
 
 }

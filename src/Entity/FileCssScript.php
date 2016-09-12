@@ -8,7 +8,8 @@ class FileCssScript extends \Tulinkry\Script\Entity\FileScript
 {
 
     public function getHtml () {
-        return Html::el( "link" ) -> rel( 'stylesheet' ) -> type( "text/css" ) -> href( $this -> source );
+        $source = $this -> source . '?t=' . time();
+        return Html::el( "link" ) -> rel( 'stylesheet' ) -> type( "text/css" ) -> href( $source );
     }
 
 }
