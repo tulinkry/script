@@ -4,7 +4,7 @@ namespace Tulinkry\Script\Entity;
 
 use Nette\Utils\Html;
 
-class FileJsScript extends \Tulinkry\Script\Entity\Script
+class FileJsScript extends \Tulinkry\Script\Entity\FileScript
 {
 
     public function getHtml()
