@@ -23,6 +23,9 @@ class ScriptExtension extends CompilerExtension
             ->setClass("Tulinkry\Script\Services\ScriptService")
             ->setInject(true);
 
+        $builder->addDefinition($this->prefix("styles"))
+            ->setClass("Tulinkry\Script\Services\StyleService")
+            ->setInject(true);
 
         $builder->addDefinition($this->prefix("url"))
             ->setClass("Tulinkry\Script\Services\UrlService")

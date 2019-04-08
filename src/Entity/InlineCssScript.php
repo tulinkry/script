@@ -4,7 +4,7 @@ namespace Tulinkry\Script\Entity;
 
 use Nette\Utils\Html;
 
-class InlineCssScript extends \Tulinkry\Script\Entity\Script
+class InlineCssScript extends InlineScript
 {
 
     public function getHtml()

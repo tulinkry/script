@@ -8,6 +8,7 @@ abstract class Script
     protected $source;
     protected $tags;
     protected $priority;
+    protected $uniqueKey;
     protected $attrs;
 
     abstract public function getHtml();
@@ -20,6 +21,12 @@ abstract class Script
         if (isset($attrs['priority'])) {
             $this->priority = $attrs['priority'];
             unset($attrs['priority']);
+        }
+
+        $this->uniqueKey = null;
+        if (isset($attrs['uniqueKey'])) {
+            $this->uniqueKey = $attrs['uniqueKey'];
+            unset($attrs['uniqueKey']);
         }
 
         $this->tags = array();
@@ -42,6 +49,23 @@ abstract class Script
     public function setPriority($priority)
     {
         $this->priority = $priority;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getUniqueKey()
+    {
+        return $this->uniqueKey;
+    }
+
+    /**
+     * @param mixed $uniqueKey
+     */
+    public function setUniqueKey($uniqueKey)
+    {
+        $this->uniqueKey = $uniqueKey;
         return $this;
     }
 

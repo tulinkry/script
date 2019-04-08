@@ -9,8 +9,11 @@ class FileJsScript extends \Tulinkry\Script\Entity\FileScript
 
     public function getHtml()
     {
-        $source = $this->source . '?t=' . time();
-        return Html::el("script")->type("text/javascript")->src($source);
+        $source = $this->source;
+        return Html::el("script")
+            ->type("text/javascript")
+            ->data('priority', $this->getPriority())
+            ->src($source);
     }
 
 }

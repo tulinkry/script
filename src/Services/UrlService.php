@@ -3,22 +3,26 @@
 namespace Tulinkry\Script\Services;
 
 use Nette\Http\IRequest;
-use Tulinkry\Script\Entity\FileCssScript;
 use Tulinkry\Script\Entity\FileJsScript;
+use Tulinkry\Script\Entity\FileScript;
+use Tulinkry\Script\Entity\InlineScript;
 
 class UrlService
 {
-
     const DEFAULT_TAG = "all-together";
 
     protected $wwwDir;
     protected $directory;
 
     /**
-     * @var ScriptService
-     * @inject
+     * @var ScriptService @inject
      */
     public $scripts;
+
+    /**
+     * @var StyleService @inject
+     */
+    public $styles;
 
     /** @var IRequest @inject */
     public $request;
@@ -50,42 +54,21 @@ class UrlService
         return rtrim($this->request->getUrl()->getBasePath(), '/');
     }
 
-    public function getScriptElement($tags)
+    public function getScriptElements($tags)
     {
-        if (($path = $this->getFile($tags, array($this->scripts, 'getAllScripts'), array($this->scripts, 'getScriptsByTags'), '.js')) !== NULL)
-            return new FileJsScript($path);
-        return NULL;
+        return $this->prepareElements($tags, 'scripts', '.js');
     }
 
-    public function getStyleElement($tags)
+    public function getStyleElements($tags)
     {
-        if (($path = $this->getFile($tags, array($this->scripts, 'getAllStyles'), array($this->scripts, 'getStylesByTags'), '.css')) !== NULL)
-            return new FileCssScript($path);
-        return NULL;
+        return $this->prepareElements($tags, 'styles', '.css');
     }
 
-    protected function getByTags($tagCallback, $tags)
-    {
-        $data = array();
-        $scripts = $tagCallback($tags);
-        $scripts = $this->sortScripts($scripts);
-        foreach ($scripts as $script) {
-            $data[] = $script->getRaw();
-        }
-        return $data;
-    }
-
-    protected function getAll($allCallback)
-    {
-        $data = array();
-        $scripts = $allCallback();
-        $scripts = $this->sortScripts($scripts);
-        foreach ($scripts as $script) {
-            $data[] = $script->getRaw();
-        }
-        return $data;
-    }
-
+    /**
+     * Sort the input scripts by a priority.
+     * @param $scripts array of scripts
+     * @return array of scripts
+     */
     protected function sortScripts(&$scripts)
     {
         uasort($scripts, function ($a, $b) {
@@ -94,22 +77,68 @@ class UrlService
         return $scripts;
     }
 
-    protected function getFile($tags, $allCallback, $tagCallback, $suffix = '.js')
+    /**
+     * Prepare the elements in an array for all script of single type.
+     *
+     * @param $tags filter the scripts by tag before returning
+     * @param $type use for this type (either scripts or styles)
+     * @param string $suffix the file suffix
+     * @return array of scripts/styles sorted based on priority
+     */
+    protected function prepareElements($tags, $type, $suffix = '.js')
     {
-        @mkdir($this->wwwDir . DIRECTORY_SEPARATOR . $this->directory, 0775, true);
+        $results = [];
 
         $tags = is_array($tags) ? $tags : array($tags);
-        $all = count($tags) === 0;
+
+        if (count($tags) === 0) {
+            $tags = array(self::DEFAULT_TAG);
+        }
 
         sort($tags);
-        $data = [];
 
-        if ($all) {
-            $data = array_merge($data, $this->getAll($allCallback));
-            $tags = array(self::DEFAULT_TAG);
-        } else {
-            $data = array_merge($data, $this->getByTags($tagCallback, $tags));
+        switch ($type) {
+            case 'scripts':
+                $elements = $this->scripts->getFiles();
+                $elements += $this->scripts->getInlines();
+                break;
+            case 'styles':
+                $elements = $this->styles->getFiles();
+                $elements += $this->styles->getInlines();
+                break;
         }
+
+        foreach ($elements as $element) {
+            if ($element instanceof FileScript) {
+                $results[] = $element;
+            }
+        }
+
+        $data = [];
+        foreach ($elements as $element) {
+            if ($element instanceof InlineScript) {
+                $data[] = $element->getRaw();
+            }
+        }
+
+        if (($generatedFile = $this->generateDataFile($data, $tags, $suffix)) !== null) {
+            $results[] = $generatedFile;
+        }
+
+        return $this->sortScripts($results);
+    }
+
+    /**
+     * Generates data file from the data be joining them and creating a file in the www directory.
+     *
+     * @param $data array of inline javascript snippets
+     * @param $tags tags which were used to obtain such data
+     * @param string $suffix the file suffix
+     * @return FileJsScript|null the new instance of file js script or null of can not be created
+     */
+    protected function generateDataFile($data, $tags, $suffix = '.js')
+    {
+        @mkdir($this->wwwDir . DIRECTORY_SEPARATOR . $this->directory, 0775, true);
 
         $data = implode(PHP_EOL . PHP_EOL . "// " . str_repeat('-', 100) . PHP_EOL . PHP_EOL, $data);
 
@@ -120,7 +149,6 @@ class UrlService
         $tmpName = implode("-", $tags) . $suffix;
         file_put_contents($this->wwwDir . DIRECTORY_SEPARATOR . $this->directory . DIRECTORY_SEPARATOR . $tmpName, $data);
 
-        return $this->getBasePath() . '/' . $this->directory . '/' . $tmpName;
+        return new FileJsScript(array('url' => $this->getBasePath() . '/' . $this->directory . '/' . $tmpName . '?t=' . time(), 'priority' => PHP_INT_MAX));
     }
-
 }
